@@ -40,7 +40,7 @@ export default function NotificationBell() {
       <Bell size={18} />{unread > 0 && <span className="notification-badge">{unread > 99 ? "99+" : unread}</span>}
     </button>
     {open && <div className="notification-popover" role="dialog" aria-label="Notifications">
-      <div className="notification-heading"><strong>Notifications</strong>{unread > 0 && <button onClick={() => void markRead()} disabled={loading}><CheckCheck size={14} /> Mark all read</button>}</div>
+      <div className="notification-heading"><strong>Notifications</strong>{items.length > 0 && <button onClick={() => void markRead()} disabled={loading}><CheckCheck size={14} /> Read all</button>}</div>
       {items.length ? items.map((item) => <button className={`notification-item ${item.readAt ? "read" : "unread"}`} key={item.id} onClick={() => !item.readAt && void markRead(item.id)}><strong>{item.title}</strong><span>{item.body}</span><small>{new Date(item.createdAt).toLocaleString()}</small></button>) : <p className="notification-empty">You’re all caught up.</p>}
     </div>}
   </div>;

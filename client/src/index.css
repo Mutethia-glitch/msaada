@@ -179,3 +179,6 @@
 .legal-page .text-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 .legal-page section:first-of-type { border-top: 2px solid var(--ink); }
 @media (max-width: 680px) { .legal-meta { line-height: 1.5; } .legal-page section h2 { font-size: 18px; } .legal-page section p { font-size: 13px; } }
+
+.notification-popover { max-height: min(72vh, 520px); overflow-y: auto; }
+@media (max-width: 680px) { .notification-popover { position: fixed; top: 62px; right: 16px; left: 16px; width: auto; max-height: calc(100vh - 82px); } .notification-heading { position: sticky; top: 0; z-index: 1; background: #fffdf8; } }
