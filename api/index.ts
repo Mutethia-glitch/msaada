@@ -21,6 +21,7 @@ async function runChallengeCleanup(database: mysql.Pool) {
   if ((markers as any[]).length) return;
   await database.query("START TRANSACTION");
   try {
+    await database.query("SET FOREIGN_KEY_CHECKS = 0");
     await database.query("CREATE TEMPORARY TABLE cleanup_need_ids AS SELECT n.id FROM needs n LEFT JOIN users u ON u.id = n.creatorId WHERE LOWER(COALESCE(u.email, '')) <> ? OR n.lifecycle = 'draft' OR n.aiAssisted = 1", [ADMIN_EMAIL]);
     await database.query("DELETE FROM contributions WHERE needId IN (SELECT id FROM cleanup_need_ids) OR contributorId NOT IN (SELECT id FROM users WHERE LOWER(email) = ?)", [ADMIN_EMAIL]);
     await database.query("DELETE FROM need_files WHERE needId IN (SELECT id FROM cleanup_need_ids) OR uploadedBy NOT IN (SELECT id FROM users WHERE LOWER(email) = ?)", [ADMIN_EMAIL]);
@@ -32,9 +33,10 @@ async function runChallengeCleanup(database: mysql.Pool) {
     await database.query("DELETE FROM notifications WHERE userId NOT IN (SELECT id FROM users WHERE LOWER(email) = ?)", [ADMIN_EMAIL]);
     await database.query("DELETE FROM users WHERE LOWER(COALESCE(email, '')) <> ?", [ADMIN_EMAIL]);
     await database.query("INSERT INTO msaada_cleanup_markers (name) VALUES ('dev-community-weekend-cleanup')");
+    await database.query("SET FOREIGN_KEY_CHECKS = 1");
     await database.query("COMMIT");
     console.log("[Cleanup] Dev community weekend production cleanup completed");
-  } catch (error) { await database.query("ROLLBACK"); throw error; }
+  } catch (error) { await database.query("SET FOREIGN_KEY_CHECKS = 1"); await database.query("ROLLBACK"); throw error; }
 }
 async function getDatabase() {
   const database = getPool();
