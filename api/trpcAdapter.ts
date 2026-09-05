@@ -12,7 +12,7 @@ function send(res: Response, data: unknown, status = 200) { return res.status(st
 function category(row: any) { return row.categoryId ? { id: row.categoryId, name: row.categoryName, description: row.categoryDescription, createdAt: row.categoryCreatedAt } : null; }
 function need(row: any) { const { categoryId, categoryName, categoryDescription, categoryCreatedAt, ...rest } = row; return { need: rest, category: category(row) }; }
 
-export async function registerTrpcAdapter(app: Express) {
+export function registerTrpcAdapter(app: Express) {
   const handler = async (req: Request, res: Response) => {
     const procedure = req.path.replace(/^\//, "");
     try {
