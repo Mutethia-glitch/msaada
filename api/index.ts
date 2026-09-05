@@ -128,7 +128,7 @@ addCategoryPath("get", "/api/categories", async (_req, res) => {
     const database = await getDatabase();
     const [rows] = await database.query("SELECT id, name, description, createdAt FROM need_categories ORDER BY name ASC");
     return res.json(rows);
-  } catch (error) { console.error("[Categories] List failed", error); return res.status(500).json({ error: "Unable to load categories." }); }
+  } catch (error) { console.error("[Categories] List failed", error); return res.status(500).json({ error: String(error) }); }
 });
 addCategoryPath("post", "/api/categories", async (req, res) => {
   try {
