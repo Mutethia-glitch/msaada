@@ -135,3 +135,7 @@
 .detail-tags { position: static !important; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 18px !important; min-height: 32px; }
 .detail-tags > span { position: static !important; transform: none !important; }
 .detail-intro > .section-kicker { display: block; clear: both; line-height: 1.6; margin: 0 0 10px; }
+
+@media (min-width:681px) {
+  .detail-image { aspect-ratio: 4 / 3 !important; align-self: start; }
+}
