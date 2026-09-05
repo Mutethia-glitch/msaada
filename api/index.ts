@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import express from "express";
 import mysql from "mysql2/promise";
 import { SignJWT, jwtVerify } from "jose";
-import { put } from "@vercel/blob";
+import { get, put } from "@vercel/blob";
 
 const app = express();
 app.use(express.json({ limit: "50mb" }));
@@ -133,9 +133,16 @@ app.get("/api/admin/needs", async (req, res) => {
   if (user?.role !== "admin") return res.status(user ? 403 : 401).json({ error: "Admin access required." });
   try {
     const database = await getDatabase();
-    const [rows] = await database.query("SELECT n.*, c.name categoryName FROM needs n LEFT JOIN need_categories c ON n.categoryId = c.id ORDER BY n.updatedAt DESC");
-    return res.json((rows as any[]).map((row) => { const { categoryName, ...need } = row; return { need, category: categoryName ? { name: categoryName } : null }; }));
+    const [rows] = await database.query("SELECT n.*, c.name categoryName, f.id fileId, f.mimeType fileMimeType FROM needs n LEFT JOIN need_categories c ON n.categoryId = c.id LEFT JOIN need_files f ON f.needId = n.id AND f.mimeType LIKE 'image/%' ORDER BY n.updatedAt DESC");
+    const grouped = new Map<number, any>();
+    for (const row of rows as any[]) { const existing = grouped.get(row.id); if (existing) continue; const { categoryName, fileId, fileMimeType, ...need } = row; grouped.set(row.id, { need, category: categoryName ? { name: categoryName } : null, imageUrl: fileId ? `/api/admin/needs/${row.id}/preview` : null, imageMimeType: fileMimeType || null }); }
+    return res.json([...grouped.values()]);
   } catch (error) { console.error("[Admin] Needs list failed", error); return res.status(500).json({ error: "Unable to load admin needs." }); }
+});
+app.get("/api/admin/needs/:needId/preview", async (req, res) => {
+  const user = await currentUser(req);
+  if (user?.role !== "admin") return res.status(user ? 403 : 401).send("Admin access required.");
+  try { const database = await getDatabase(); const [files] = await database.query("SELECT fileKey, mimeType FROM need_files WHERE needId = ? AND mimeType LIKE 'image/%' ORDER BY createdAt DESC LIMIT 1", [Number(req.params.needId)]); const file = (files as any[])[0]; if (!file) return res.status(404).send("Image not found."); const blob = await get(file.fileKey, { access: "private" }); if (blob.statusCode !== 200) return res.status(404).send("Image not found."); res.setHeader("Content-Type", file.mimeType); res.setHeader("Cache-Control", "private, max-age=300"); return res.send(Buffer.from(await new Response(blob.stream).arrayBuffer())); } catch (error) { console.error("[Admin] Image preview failed", error); return res.status(502).send("Unable to load image."); }
 });
 app.post("/api/admin/needs/delete", async (req, res) => {
   const user = await currentUser(req);
