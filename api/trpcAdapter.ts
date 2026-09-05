@@ -32,11 +32,6 @@ export function registerTrpcAdapter(app: Express) {
       return send(res, { message: `Unknown procedure: ${procedure}` }, 404);
     } catch (error) { console.error(`[tRPC adapter] ${procedure} failed`, error); return send(res, { message: "Internal server error" }, 500); }
   };
-  const procedures = ["auth.me", "auth.logout", "categories.list", "needs.list", "needs.mine", "needs.pending", "needs.createDraft", "contributions.mine", "contributions.pledge", "reports.list", "reports.create"];
-  for (const procedure of procedures) {
-    app.get(`/api/trpc/${procedure}`, handler);
-    app.post(`/api/trpc/${procedure}`, handler);
-    app.get(`/trpc/${procedure}`, handler);
-    app.post(`/trpc/${procedure}`, handler);
-  }
+  app.use("/api/trpc", handler);
+  app.use("/trpc", handler);
 }
