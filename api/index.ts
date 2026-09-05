@@ -2,12 +2,10 @@ import crypto from "node:crypto";
 import express from "express";
 import mysql from "mysql2/promise";
 import { SignJWT, jwtVerify } from "jose";
-import { registerTrpcAdapter } from "./trpcAdapter";
 
 const app = express();
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
-registerTrpcAdapter(app);
 const COOKIE = "app_session_id";
 const ONE_YEAR = 1000 * 60 * 60 * 24 * 365;
 let pool: mysql.Pool | null = null;
@@ -132,6 +130,32 @@ addNeedPath("/api/needs/draft", async (req, res) => {
     const [result] = await database.query("INSERT INTO needs (creatorId, categoryId, title, story, publicSummary, location, urgency, lifecycle, verification, beneficiaryCount, quantityLabel, goalAmount, aiAssisted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending_review', ?, ?, ?, 0)", [user.id, categoryId, title.trim(), story.trim(), typeof publicSummary === "string" ? publicSummary.trim() : story.trim().slice(0, 3000), location.trim(), ["low", "medium", "high"].includes(urgency) ? urgency : "medium", lifecycle, Number.isInteger(beneficiaryCount) ? beneficiaryCount : 0, typeof quantityLabel === "string" ? quantityLabel.trim() || null : null, Number.isInteger(goalAmount) ? goalAmount : 0]);
     return res.status(201).json({ success: true, needId: (result as any).insertId, lifecycle });
   } catch (error) { console.error("[Needs] Draft creation failed", error); return res.status(500).json({ error: "Unable to save this need right now." }); }
+});
+
+function trpcJson(res: express.Response, data: unknown, status = 200) { return res.status(status).json([{ result: { data: { json: data } } }]); }
+app.use((req, res, next) => {
+  const requestPath = (req.originalUrl || req.url || "").split("?")[0];
+  if (!requestPath.startsWith("/api/trpc/") && !requestPath.startsWith("/trpc/")) return next();
+  const procedure = requestPath.replace(/^\/api\/trpc\//, "").replace(/^\/trpc\//, "");
+  void (async () => {
+    try {
+      if (procedure === "auth.me") return trpcJson(res, await currentUser(req));
+      if (procedure === "auth.logout") { res.clearCookie(COOKIE, { httpOnly: true, secure: true, sameSite: "none", path: "/" }); return trpcJson(res, { success: true }); }
+      const database = await getDatabase(); const user = await currentUser(req);
+      if (["needs.mine", "contributions.mine"].includes(procedure) && !user) return trpcJson(res, { message: "Please sign in" }, 401);
+      if (procedure === "categories.list") { const [rows] = await database.query("SELECT id, name, description, createdAt FROM need_categories ORDER BY name ASC"); return trpcJson(res, rows); }
+      if (procedure === "needs.list" || procedure === "needs.mine" || procedure === "needs.pending") {
+        const condition = procedure === "needs.mine" ? "WHERE n.creatorId = ?" : procedure === "needs.pending" ? "WHERE n.lifecycle = 'pending_review'" : "WHERE n.lifecycle = 'active'";
+        const params = procedure === "needs.mine" ? [user!.id] : [];
+        const [rows] = await database.query(`SELECT n.*, c.id categoryId, c.name categoryName, c.description categoryDescription, c.createdAt categoryCreatedAt FROM needs n LEFT JOIN need_categories c ON n.categoryId = c.id ${condition} ORDER BY n.updatedAt DESC`, params);
+        return trpcJson(res, (rows as any[]).map((row) => { const { categoryId, categoryName, categoryDescription, categoryCreatedAt, ...needRow } = row; return { need: needRow, category: categoryId ? { id: categoryId, name: categoryName, description: categoryDescription, createdAt: categoryCreatedAt } : null }; }));
+      }
+      if (procedure === "contributions.mine") { const [rows] = await database.query("SELECT co.*, n.id needId, n.title needTitle FROM contributions co LEFT JOIN needs n ON co.needId = n.id WHERE co.contributorId = ? ORDER BY co.updatedAt DESC", [user!.id]); return trpcJson(res, (rows as any[]).map((row) => ({ contribution: { id: row.id, needId: row.needId, contributorId: row.contributorId, type: row.type, description: row.description, amount: row.amount, quantityLabel: row.quantityLabel, status: row.status, createdAt: row.createdAt, updatedAt: row.updatedAt }, need: row.needId ? { id: row.needId, title: row.needTitle } : null })));
+      }
+      if (procedure === "reports.list") { const [rows] = await database.query("SELECT * FROM reports ORDER BY createdAt DESC"); return trpcJson(res, rows); }
+      return trpcJson(res, { message: `Unknown procedure: ${procedure}` }, 404);
+    } catch (error) { console.error(`[tRPC] ${procedure} failed`, error); return trpcJson(res, { message: "Internal server error" }, 500); }
+  })();
 });
 
 export default function api(req: express.Request, res: express.Response) { return app(req, res); }
