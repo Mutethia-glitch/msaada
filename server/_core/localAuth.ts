@@ -37,7 +37,7 @@ function invalidRequest(res: Response, error: unknown) {
 }
 
 export function registerLocalAuthRoutes(app: Express) {
-  app.post("/api/auth/register", async (req, res) => {
+  app.post(["/api/auth/register", "/auth/register"], async (req, res) => {
     try {
       const input = registerSchema.parse(req.body);
       const email = normalizedEmail(input.email);
@@ -56,7 +56,7 @@ export function registerLocalAuthRoutes(app: Express) {
     }
   });
 
-  app.post("/api/auth/login", async (req, res) => {
+  app.post(["/api/auth/login", "/auth/login"], async (req, res) => {
     try {
       const input = credentialsSchema.parse(req.body);
       const user = await db.getUserByEmail(normalizedEmail(input.email));
@@ -74,4 +74,3 @@ export function registerLocalAuthRoutes(app: Express) {
     }
   });
 }
-
