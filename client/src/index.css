@@ -139,3 +139,5 @@
 @media (min-width:681px) {
   .detail-image { aspect-ratio: 4 / 3 !important; align-self: start; }
 }
+
+.pledge-money-note { color: #727a72; font-size: 11px; line-height: 1.5; margin: 0; }
