@@ -40,7 +40,7 @@ function passwordMatches(password: string, stored: string) {
   return expected.length === actual.length && crypto.timingSafeEqual(actual, expected);
 }
 function emailOf(value: unknown) { return typeof value === "string" ? value.trim().toLowerCase() : ""; }
-const ADMIN_EMAIL = "promisemutethia@gmail.com";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 async function sessionToken(openId: string, name: string) {
   const secret = new TextEncoder().encode(process.env.JWT_SECRET || "");
   return new SignJWT({ openId, appId: process.env.VITE_APP_ID || "local", name }).setProtectedHeader({ alg: "HS256", typ: "JWT" }).setExpirationTime("1y").sign(secret);
