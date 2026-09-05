@@ -139,10 +139,13 @@ app.use((req, res, next) => {
   const procedure = requestPath.replace(/^\/api\/trpc\//, "").replace(/^\/trpc\//, "");
   void (async () => {
     try {
+      const rawInput = typeof req.query.input === "string" ? req.query.input : undefined;
+      let input: any = req.body?.["0"]?.json ?? req.body?.json ?? req.body ?? {};
+      if (rawInput) { try { const parsed = JSON.parse(rawInput); input = parsed?.json ?? parsed?.[0]?.json ?? parsed?.[0] ?? parsed; } catch {} }
       if (procedure === "auth.me") return trpcJson(res, await currentUser(req));
       if (procedure === "auth.logout") { res.clearCookie(COOKIE, { httpOnly: true, secure: true, sameSite: "none", path: "/" }); return trpcJson(res, { success: true }); }
       const database = await getDatabase(); const user = await currentUser(req);
-      if (["needs.mine", "contributions.mine"].includes(procedure) && !user) return trpcJson(res, { message: "Please sign in" }, 401);
+      if (["needs.mine", "needs.createDraft", "needs.approve", "contributions.mine", "contributions.pledge", "reports.create"].includes(procedure) && !user) return trpcJson(res, { message: "Please sign in" }, 401);
       if (procedure === "categories.list") { const [rows] = await database.query("SELECT id, name, description, createdAt FROM need_categories ORDER BY name ASC"); return trpcJson(res, rows); }
       if (procedure === "needs.list" || procedure === "needs.mine" || procedure === "needs.pending") {
         const condition = procedure === "needs.mine" ? "WHERE n.creatorId = ?" : procedure === "needs.pending" ? "WHERE n.lifecycle = 'pending_review'" : "WHERE n.lifecycle = 'active'";
@@ -152,6 +155,10 @@ app.use((req, res, next) => {
       }
       if (procedure === "contributions.mine") { const [rows] = await database.query("SELECT co.*, n.id needId, n.title needTitle FROM contributions co LEFT JOIN needs n ON co.needId = n.id WHERE co.contributorId = ? ORDER BY co.updatedAt DESC", [user!.id]); return trpcJson(res, (rows as any[]).map((row) => ({ contribution: { id: row.id, needId: row.needId, contributorId: row.contributorId, type: row.type, description: row.description, amount: row.amount, quantityLabel: row.quantityLabel, status: row.status, createdAt: row.createdAt, updatedAt: row.updatedAt }, need: row.needId ? { id: row.needId, title: row.needTitle } : null })));
       }
+      if (procedure === "needs.createDraft") { const [result] = await database.query("INSERT INTO needs (creatorId, categoryId, title, story, publicSummary, location, urgency, lifecycle, verification, beneficiaryCount, quantityLabel, goalAmount, aiAssisted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending_review', ?, ?, ?, 0)", [user!.id, input.categoryId, input.title, input.story, input.publicSummary || input.story?.slice(0, 3000), input.location, input.urgency || "medium", input.submitForReview ? "pending_review" : "draft", input.beneficiaryCount || 0, input.quantityLabel || null, input.goalAmount || 0]); return trpcJson(res, { needId: (result as any).insertId }); }
+      if (procedure === "needs.approve") { await database.query("UPDATE needs SET lifecycle = 'active', verification = 'verified' WHERE id = ?", [input.needId]); await database.query("INSERT INTO verification_records (needId, reviewerId, decision, notes) VALUES (?, ?, 'approved', ?)", [input.needId, user!.id, input.notes || null]); return trpcJson(res, { success: true }); }
+      if (procedure === "contributions.pledge") { const [result] = await database.query("INSERT INTO contributions (needId, contributorId, type, description, amount, quantityLabel, status) VALUES (?, ?, ?, ?, ?, ?, 'pledged')", [input.needId, user!.id, input.type, input.description, input.amount || null, input.quantityLabel || null]); return trpcJson(res, { id: (result as any).insertId, ...input, contributorId: user!.id, status: "pledged" }); }
+      if (procedure === "reports.create") { const [result] = await database.query("INSERT INTO reports (needId, reporterId, category, details, status) VALUES (?, ?, ?, ?, 'open')", [input.needId, user!.id, input.category, input.details || null]); return trpcJson(res, { id: (result as any).insertId, ...input, reporterId: user!.id, status: "open" }); }
       if (procedure === "reports.list") { const [rows] = await database.query("SELECT * FROM reports ORDER BY createdAt DESC"); return trpcJson(res, rows); }
       return trpcJson(res, { message: `Unknown procedure: ${procedure}` }, 404);
     } catch (error) { console.error(`[tRPC] ${procedure} failed`, error); return trpcJson(res, { message: "Internal server error" }, 500); }
