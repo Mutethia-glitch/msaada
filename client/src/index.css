@@ -173,3 +173,9 @@
 .faq-list { margin-bottom: 28px; }
 .legal-actions { display: flex; align-items: center; gap: 22px; margin-top: 30px; }
 @media (max-width: 680px) { .site-footer-inner { align-items: flex-start; flex-direction: column; gap: 17px; } .site-footer-links { justify-content: flex-start; gap: 12px 17px; } .legal-page { padding-top: 48px; padding-bottom: 62px; } .legal-lede { font-size: 15px; margin-bottom: 38px; } .legal-actions { align-items: flex-start; flex-direction: column; } }
+
+.legal-meta { display: inline-flex; padding: 7px 10px; border: 1px solid #d9dacd; border-radius: 5px; color: #7b827a; font: 10px 'DM Mono', monospace; letter-spacing: .03em; margin: 0 0 24px; }
+.legal-page .text-link { color: var(--terracotta-dark); }
+.legal-page .text-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.legal-page section:first-of-type { border-top: 2px solid var(--ink); }
+@media (max-width: 680px) { .legal-meta { line-height: 1.5; } .legal-page section h2 { font-size: 18px; } .legal-page section p { font-size: 13px; } }
