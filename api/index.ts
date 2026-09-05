@@ -1,8 +1,12 @@
 import express from "express";
-import { createApp } from "../server/app";
+import * as db from "../server/db";
+import { sdk } from "../server/_core/sdk";
 
-const app = createApp();
+const app = express();
+app.use(express.json({ limit: "50mb" }));
+app.post("/api/auth/register", (_req, res) => res.status(503).json({ error: "probe" }));
+app.post("/auth/register", (_req, res) => res.status(503).json({ error: "probe" }));
 
-export default function api(req: express.Request, res: express.Response) {
-  return app(req, res);
-}
+export default function api(req: express.Request, res: express.Response) { return app(req, res); }
+void db;
+void sdk;
