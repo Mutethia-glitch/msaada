@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import express from "express";
 import mysql from "mysql2/promise";
 import { SignJWT, jwtVerify } from "jose";
+import { storagePut } from "../server/storage";
 
 const app = express();
 app.use(express.json({ limit: "50mb" }));
@@ -136,6 +137,28 @@ addNeedPath("/api/needs/draft", async (req, res) => {
     const [result] = await database.query("INSERT INTO needs (creatorId, categoryId, title, story, publicSummary, location, urgency, lifecycle, verification, beneficiaryCount, quantityLabel, goalAmount, aiAssisted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending_review', ?, ?, ?, 0)", [user.id, categoryId, title.trim(), story.trim(), typeof publicSummary === "string" ? publicSummary.trim() : story.trim().slice(0, 3000), location.trim(), ["low", "medium", "high"].includes(urgency) ? urgency : "medium", lifecycle, Number.isInteger(beneficiaryCount) ? beneficiaryCount : 0, typeof quantityLabel === "string" ? quantityLabel.trim() || null : null, Number.isInteger(goalAmount) ? goalAmount : 0]);
     return res.status(201).json({ success: true, needId: (result as any).insertId, lifecycle });
   } catch (error) { console.error("[Needs] Draft creation failed", error); return res.status(500).json({ error: "Unable to save this need right now." }); }
+});
+addNeedPath("/api/needs/file", async (req, res) => {
+  try {
+    const user = await currentUser(req);
+    if (!user) return res.status(401).json({ error: "Please sign in before uploading a file." });
+    const { needId, fileName, mimeType, data } = req.body ?? {};
+    if (!Number.isInteger(needId) || needId < 1 || typeof fileName !== "string" || typeof mimeType !== "string" || typeof data !== "string") {
+      return res.status(400).json({ error: "A valid need, file name, type, and file are required." });
+    }
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+    if (!allowedTypes.includes(mimeType)) return res.status(400).json({ error: "Upload a JPG, PNG, WEBP, or PDF file." });
+    const encoded = data.replace(/^data:[^;]+;base64,/, "");
+    const bytes = Buffer.from(encoded, "base64");
+    if (!bytes.length || bytes.length > 10 * 1024 * 1024) return res.status(400).json({ error: "Files must be smaller than 10 MB." });
+    const database = await getDatabase();
+    const [owned] = await database.query("SELECT id FROM needs WHERE id = ? AND creatorId = ? LIMIT 1", [needId, user.id]);
+    if (!(owned as any[]).length) return res.status(404).json({ error: "Need not found." });
+    const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-180) || "attachment";
+    const uploaded = await storagePut(`needs/${needId}/${safeName}`, bytes, mimeType);
+    await database.query("INSERT INTO need_files (needId, uploadedBy, fileKey, fileUrl, fileName, mimeType) VALUES (?, ?, ?, ?, ?, ?)", [needId, user.id, uploaded.key, uploaded.url, fileName.slice(0, 255), mimeType]);
+    return res.status(201).json({ success: true, fileUrl: uploaded.url, fileName: fileName.slice(0, 255), mimeType });
+  } catch (error) { console.error("[Needs] File upload failed", error); return res.status(500).json({ error: "Unable to upload this file right now." }); }
 });
 
 function trpcJson(res: express.Response, data: unknown, status = 200) { return res.status(status).json([{ result: { data } }]); }
