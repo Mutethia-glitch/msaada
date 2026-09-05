@@ -67,7 +67,12 @@ addAuthPath("post", "/api/auth/register", async (req, res) => {
     const openId = `local_${crypto.randomUUID()}`;
     await database.query("INSERT INTO users (openId, name, email, passwordHash, loginMethod) VALUES (?, ?, ?, ?, 'email')", [openId, name, email, passwordHash(password)]);
     setSession(res, await sessionToken(openId, name)); return res.status(201).json({ success: true });
-  } catch (error) { console.error("[Auth] Registration failed", error); return res.status(500).json({ error: "Unable to create your account right now." }); }
+  } catch (error) {
+    console.error("[Auth] Registration failed", error);
+    const message = String(error);
+    if (message.includes("DATABASE_URL is not configured")) return res.status(503).json({ error: "The account database is not connected yet. Please configure DATABASE_URL in Vercel." });
+    return res.status(500).json({ error: "Unable to create your account right now." });
+  }
 });
 addAuthPath("post", "/api/auth/login", async (req, res) => {
   try {
@@ -77,7 +82,12 @@ addAuthPath("post", "/api/auth/login", async (req, res) => {
     if (!user?.passwordHash || typeof password !== "string" || !passwordMatches(password, user.passwordHash)) return res.status(401).json({ error: "Email or password is incorrect." });
     await database.query("UPDATE users SET lastSignedIn = CURRENT_TIMESTAMP WHERE openId = ?", [user.openId]);
     setSession(res, await sessionToken(user.openId, user.name || "Msaada member")); return res.json({ success: true });
-  } catch (error) { console.error("[Auth] Login failed", error); return res.status(500).json({ error: "Unable to sign you in right now." }); }
+  } catch (error) {
+    console.error("[Auth] Login failed", error);
+    const message = String(error);
+    if (message.includes("DATABASE_URL is not configured")) return res.status(503).json({ error: "The account database is not connected yet. Please configure DATABASE_URL in Vercel." });
+    return res.status(500).json({ error: "Unable to sign you in right now." });
+  }
 });
 addAuthPath("get", "/api/auth/me", async (req, res) => res.json(await currentUser(req)));
 addAuthPath("post", "/api/auth/logout", async (_req, res) => { res.clearCookie(COOKIE, { httpOnly: true, secure: true, sameSite: "none", path: "/" }); res.json({ success: true }); });
