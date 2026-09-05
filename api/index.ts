@@ -15,30 +15,6 @@ function getPool() {
   if (!pool && process.env.DATABASE_URL) pool = mysql.createPool(process.env.DATABASE_URL);
   return pool;
 }
-async function runChallengeCleanup(database: mysql.Pool) {
-  const [admins] = await database.query("SELECT id FROM users WHERE LOWER(email) = ? LIMIT 2", [ADMIN_EMAIL]);
-  if ((admins as any[]).length !== 1) throw new Error("Cleanup aborted: expected exactly one admin account");
-  const adminId = (admins as any[])[0].id;
-  await database.query("CREATE TABLE IF NOT EXISTS msaada_cleanup_markers (name varchar(120) PRIMARY KEY, createdAt timestamp DEFAULT CURRENT_TIMESTAMP)");
-  const [markers] = await database.query("SELECT name FROM msaada_cleanup_markers WHERE name = 'dev-community-weekend-cleanup' LIMIT 1");
-  if ((markers as any[]).length) return;
-  await database.query("DROP TEMPORARY TABLE IF EXISTS cleanup_need_ids");
-  await database.query("START TRANSACTION");
-  try {
-    await database.query("SET FOREIGN_KEY_CHECKS = 0");
-    await database.query("CREATE TEMPORARY TABLE cleanup_need_ids AS SELECT n.id FROM needs n LEFT JOIN users u ON u.id = n.creatorId WHERE u.id <> ? OR n.lifecycle = 'draft' OR n.aiAssisted = 1", [adminId]);
-    const childDeletes = ["DELETE t FROM contributions t INNER JOIN cleanup_need_ids x ON x.id = t.needId", "DELETE t FROM need_files t INNER JOIN cleanup_need_ids x ON x.id = t.needId", "DELETE t FROM need_updates t INNER JOIN cleanup_need_ids x ON x.id = t.needId", "DELETE t FROM verification_records t INNER JOIN cleanup_need_ids x ON x.id = t.needId", "DELETE t FROM impact_records t INNER JOIN cleanup_need_ids x ON x.id = t.needId", "DELETE t FROM reports t INNER JOIN cleanup_need_ids x ON x.id = t.needId"];
-    for (const statement of childDeletes) { try { await database.query(statement); } catch (error) { if (!String(error).includes("doesn't exist")) throw error; } }
-    await database.query("DELETE FROM needs WHERE id IN (SELECT id FROM cleanup_need_ids)");
-    try { await database.query("DELETE FROM contributions WHERE contributorId <> ?", [adminId]); } catch (error) { if (!String(error).includes("doesn't exist")) throw error; }
-    try { await database.query("DELETE FROM notifications WHERE userId <> ?", [adminId]); } catch (error) { if (!String(error).includes("doesn't exist")) throw error; }
-    await database.query("DELETE FROM users WHERE id <> ?", [adminId]);
-    await database.query("INSERT INTO msaada_cleanup_markers (name) VALUES ('dev-community-weekend-cleanup')");
-    await database.query("SET FOREIGN_KEY_CHECKS = 1");
-    await database.query("COMMIT");
-    console.log("[Cleanup] Dev community weekend production cleanup completed");
-  } catch (error) { await database.query("SET FOREIGN_KEY_CHECKS = 1"); await database.query("ROLLBACK"); throw error; }
-}
 async function getDatabase() {
   const database = getPool();
   if (!database) throw new Error("DATABASE_URL is not configured");
