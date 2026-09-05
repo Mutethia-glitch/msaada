@@ -98,3 +98,11 @@
   .need-image > .badge { left: 8px; }
   .need-image > .urgency { right: 8px; }
 }
+
+@media (max-width:680px) {
+  .detail-intro { min-width: 0; }
+  .detail-tags { position: static !important; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 24px 0 22px !important; min-height: 32px; }
+  .detail-tags > span { position: static !important; transform: none !important; }
+  .detail-intro > .section-kicker { display: block; clear: both; line-height: 1.6; margin: 0 0 10px; }
+  .detail-intro h1 { margin-top: 12px; }
+}
