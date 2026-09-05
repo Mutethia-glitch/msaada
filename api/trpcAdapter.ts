@@ -16,7 +16,8 @@ export function registerTrpcAdapter(app: Express) {
   const handler = async (req: Request, res: Response) => {
     let procedure = "unknown";
     try {
-      procedure = (req.path || req.url || "").replace(/^\//, "").split("?")[0];
+      const requestPath = (req.originalUrl || req.url || req.path || "").split("?")[0];
+      procedure = requestPath.replace(/^\/api\/trpc\//, "").replace(/^\/trpc\//, "").replace(/^\//, "");
       if (procedure === "auth.me") return send(res, await currentUserForApi(req));
       if (procedure === "auth.logout") { res.clearCookie("app_session_id", { httpOnly: true, secure: true, sameSite: "none", path: "/" }); return send(res, { success: true }); }
       const db = await getDatabase();
