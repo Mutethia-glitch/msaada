@@ -10,6 +10,7 @@ import NeedDetail from "./pages/NeedDetail";
 import CreateNeed from "./pages/CreateNeed";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
+import SignIn from "./pages/SignIn";
 
 function Router() {
   return (
@@ -18,6 +19,7 @@ function Router() {
       <Route path="/discover" component={Discover} />
       <Route path="/needs/:id" component={NeedDetail} />
       <Route path="/create" component={CreateNeed} />
+      <Route path="/signin" component={SignIn} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/admin" component={Admin} />
       <Route path="/404" component={NotFound} />

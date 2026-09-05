@@ -21,7 +21,7 @@ export default function Home() {
           {nav.map((item) => <a key={item} href={`#${item.toLowerCase().replaceAll(" ", "-").replace("&", "and")}`} onClick={() => setMenuOpen(false)}>{item}</a>)}
           <Link href="/discover" className="nav-link" onClick={() => setMenuOpen(false)}>Explore needs <ArrowRight size={15} /></Link>
         </nav>
-        <div className="top-actions"><Link href="/dashboard" className="text-button">Sign in</Link><Link href="/create" className="button button-dark">Post a need <ArrowRight size={16} /></Link></div>
+        <div className="top-actions"><Link href="/signin" className="text-button">Sign in</Link><Link href="/create" className="button button-dark">Post a need <ArrowRight size={16} /></Link></div>
         <button className="menu-button" aria-label={menuOpen ? "Close menu" : "Open menu"} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X /> : <Menu />}</button>
       </header>
 
