@@ -37,7 +37,7 @@ function invalidRequest(res: Response, error: unknown) {
 }
 
 export function registerLocalAuthRoutes(app: Express) {
-  app.post(["/api/auth/register", "/auth/register"], async (req, res) => {
+  const register = async (req: Request, res: Response) => {
     try {
       const input = registerSchema.parse(req.body);
       const email = normalizedEmail(input.email);
@@ -54,9 +54,11 @@ export function registerLocalAuthRoutes(app: Express) {
       console.error("[Auth] Registration failed", error);
       res.status(500).json({ error: "Unable to create your account right now." });
     }
-  });
+  };
+  app.post("/api/auth/register", register);
+  app.post("/auth/register", register);
 
-  app.post(["/api/auth/login", "/auth/login"], async (req, res) => {
+  const login = async (req: Request, res: Response) => {
     try {
       const input = credentialsSchema.parse(req.body);
       const user = await db.getUserByEmail(normalizedEmail(input.email));
@@ -72,5 +74,7 @@ export function registerLocalAuthRoutes(app: Express) {
       console.error("[Auth] Login failed", error);
       res.status(500).json({ error: "Unable to sign you in right now." });
     }
-  });
+  };
+  app.post("/api/auth/login", login);
+  app.post("/auth/login", login);
 }
