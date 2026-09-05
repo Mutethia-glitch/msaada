@@ -1,28 +1,36 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
+import { z } from "zod";
+import { invokeLLM } from "./_core/llm";
+import { createContribution, createNeedDraft, createReport, getDb, listPublicNeeds, recordVerification } from "./db";
+import { needCategories, needs } from "../drizzle/schema";
+
+const needAnalysisSchema = { type: "object", properties: { category: { type: "string" }, title: { type: "string" }, shortDescription: { type: "string" }, urgency: { type: "string", enum: ["low", "medium", "high"] }, quantity: { type: "string" }, beneficiaries: { type: "integer" }, contributionTypes: { type: "array", items: { type: "string" } }, missingInformation: { type: "array", items: { type: "string" } }, publicSummary: { type: "string" } }, required: ["category", "title", "shortDescription", "urgency", "quantity", "beneficiaries", "contributionTypes", "missingInformation", "publicSummary"], additionalProperties: false } as const;
+
+const moderatorProcedure = protectedProcedure.use(({ ctx, next }) => { if (ctx.user.role !== "admin" && ctx.user.role !== "moderator") throw new TRPCError({ code: "FORBIDDEN", message: "Moderator access required" }); return next(); });
+const adminOnlyProcedure = protectedProcedure.use(({ ctx, next }) => { if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" }); return next(); });
 
 export const appRouter = router({
-    // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
-  auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
-    logout: publicProcedure.mutation(({ ctx }) => {
-      const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return {
-        success: true,
-      } as const;
+  auth: router({ me: publicProcedure.query((opts) => opts.ctx.user), logout: publicProcedure.mutation(({ ctx }) => { const cookieOptions = getSessionCookieOptions(ctx.req); ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 }); return { success: true } as const; }) }),
+  needs: router({
+    list: publicProcedure.query(() => listPublicNeeds()),
+    analyze: protectedProcedure.input(z.object({ story: z.string().min(20).max(5000) })).mutation(async ({ input }) => {
+      const response = await invokeLLM({ model: "gemini-2.5-flash", messages: [{ role: "system", content: "You structure community need requests. Never claim that a request is verified. Return only the requested JSON." }, { role: "user", content: input.story }], response_format: { type: "json_schema", json_schema: { name: "need_analysis", strict: true, schema: needAnalysisSchema } } });
+      const content = response.choices?.[0]?.message?.content; if (typeof content !== "string") throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "AI analysis did not return structured content" });
+      return { ...JSON.parse(content), aiAssisted: true, verification: "pending_review" as const };
     }),
+    createDraft: protectedProcedure.input(z.object({ title: z.string().min(3).max(180), story: z.string().min(20).max(10000), publicSummary: z.string().max(3000).optional(), location: z.string().min(2).max(120), urgency: z.enum(["low", "medium", "high"]), beneficiaryCount: z.number().int().min(0).max(100000), quantityLabel: z.string().max(180).optional(), goalAmount: z.number().int().min(0).max(100000000), categoryId: z.number().int().positive(), submitForReview: z.boolean().default(false) })).mutation(({ ctx, input }) => createNeedDraft({ ...input, creatorId: ctx.user.id, lifecycle: input.submitForReview ? "pending_review" : "draft", verification: "pending_review", aiAssisted: input.publicSummary ? 1 : 0 })),
+    submit: protectedProcedure.input(z.object({ needId: z.number().int().positive() })).mutation(async ({ ctx, input }) => { const db = await getDb(); if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" }); const result = await db.update(needs).set({ lifecycle: "pending_review", verification: "pending_review" }).where(eq(needs.id, input.needId)); return { success: Boolean(result), needId: input.needId, submittedBy: ctx.user.id }; }),
+    approve: moderatorProcedure.input(z.object({ needId: z.number().int().positive(), notes: z.string().max(2000).optional() })).mutation(async ({ ctx, input }) => { const db = await getDb(); if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" }); await db.update(needs).set({ lifecycle: "active", verification: "verified" }).where(eq(needs.id, input.needId)); await recordVerification({ needId: input.needId, reviewerId: ctx.user.id, decision: "approved", notes: input.notes }); return { success: true }; }),
   }),
-
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  contributions: router({ pledge: protectedProcedure.input(z.object({ needId: z.number().int().positive(), type: z.enum(["money", "items", "skills", "time", "logistics", "professional_services"]), description: z.string().min(3).max(1000), amount: z.number().int().min(0).optional(), quantityLabel: z.string().max(160).optional() })).mutation(({ ctx, input }) => createContribution({ ...input, contributorId: ctx.user.id, status: "pledged" })),
+  }),
+  reports: router({ create: protectedProcedure.input(z.object({ needId: z.number().int().positive(), category: z.enum(["suspicious_request", "misleading_information", "duplicate", "inappropriate_content", "other"]), details: z.string().max(2000).optional() })).mutation(({ ctx, input }) => createReport({ ...input, reporterId: ctx.user.id, status: "open" })), list: adminOnlyProcedure.query(async () => { const db = await getDb(); if (!db) return []; return db.select().from((await import("../drizzle/schema")).reports); }) }),
+  categories: router({ list: publicProcedure.query(async () => { const db = await getDb(); if (!db) return []; return db.select().from(needCategories); }) }),
 });
-
 export type AppRouter = typeof appRouter;
