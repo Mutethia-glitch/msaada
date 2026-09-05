@@ -1,7 +1,8 @@
 import { ArrowRight, Check, HeartHandshake, Leaf, Menu, MoveUpRight, ShieldCheck, Sparkles, Users, X } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
-import { demoLabel, formatKsh, needs } from "@/lib/demoData";
+import { trpc } from "@/lib/trpc";
+const formatKsh = (value: number) => `KSh ${new Intl.NumberFormat("en-KE").format(value)}`;
 
 const nav = ["How it works", "Featured needs", "Trust & verification"];
 
@@ -11,6 +12,7 @@ function Brand() {
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const publicNeeds = trpc.needs.list.useQuery();
   return (
     <div className="site-shell">
       <header className="topbar container">
@@ -49,19 +51,20 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="section featured-section" id="featured-needs"><div className="container"><div className="section-heading-row"><div><span className="section-kicker">02 / Open needs</span><h2>Find a way to <em>show up.</em></h2></div><Link href="/discover" className="text-link">View all needs <ArrowRight size={17} /></Link></div><div className="need-grid">{needs.slice(0, 3).map((need) => <NeedCard key={need.id} need={need} />)}</div></div></section>
+        <section className="section featured-section" id="featured-needs"><div className="container"><div className="section-heading-row"><div><span className="section-kicker">02 / Open needs</span><h2>Find a way to <em>show up.</em></h2></div><Link href="/discover" className="text-link">View all needs <ArrowRight size={17} /></Link></div><div className="need-grid">{publicNeeds.data?.slice(0, 3).map((row) => <NeedCard key={row.need.id} row={row} />)}</div></div></section>
 
         <section className="impact-section container"><div className="impact-panel"><div className="impact-copy"><span className="section-kicker light">03 / The loop closed</span><h2>Good help deserves<br /><em>a clear ending.</em></h2><p>Every fulfilled need becomes more than a number. It becomes a story of what changed, who was reached, and what comes next.</p><Link href="/needs/trees-rongai" className="button button-cream">See an impact story <ArrowRight size={17} /></Link></div><div className="impact-metrics"><div><strong>83</strong><span>needs fulfilled</span></div><div><strong>1,248</strong><span>people helped</span></div><div><strong>312h</strong><span>volunteer time</span></div></div><div className="impact-orb orb-one" /><div className="impact-orb orb-two" /></div></section>
 
-        <section className="trust-section container" id="trust-and-verification"><div className="trust-visual"><div className="trust-circle"><ShieldCheck size={44} /><span>Trust<br />is a practice</span></div><div className="trust-chip"><span className="status-dot" /> Verified request</div></div><div className="trust-copy"><span className="section-kicker">04 / A more honest platform</span><h2>Clarity builds<br /><em>confidence.</em></h2><p>Verification on Msaada is deliberately specific. A badge tells you what has been reviewed — and what has not. AI can help structure a request, but it never stands in for human verification.</p><div className="trust-points"><div><Check size={16} /><span>Review status is always visible</span></div><div><Check size={16} /><span>AI-assisted fields are clearly labelled</span></div><div><Check size={16} /><span>Outcomes are reported by the need owner</span></div></div></div></section>
+        <section className="trust-section container" id="trust-and-verification"><div className="trust-visual"><div className="trust-circle"><ShieldCheck size={44} /><span>Trust<br />is a practice</span></div><div className="trust-chip"><span className="status-dot" /> Verified request</div></div><div className="trust-copy"><span className="section-kicker">04 / A more honest platform</span><h2>Clarity builds<br /><em>confidence.</em></h2><p>Verification on Msaada is deliberately specific. A badge tells you what has been reviewed — and what has not. Human moderation is required before a request becomes public, and verification never guarantees an outcome.</p><div className="trust-points"><div><Check size={16} /><span>Review status is always visible</span></div><div><Check size={16} /><span>Request status and review decisions are visible</span></div><div><Check size={16} /><span>Outcomes are reported by the need owner</span></div></div></div></section>
 
         <section className="cta-section container"><div><span className="section-kicker">Start where you are</span><h2>There is always<br /><em>a way to help.</em></h2></div><div className="cta-actions"><Link href="/discover" className="button button-dark button-large">Explore open needs <ArrowRight size={18} /></Link><Link href="/create" className="button button-outline button-large">Share a need</Link></div></section>
       </main>
-      <footer className="footer container"><Brand /><p>Need → Help → Impact</p><span>{demoLabel}</span></footer>
+      <footer className="footer container"><Brand /><p>Need → Help → Impact</p><span>Database-backed community requests</span></footer>
     </div>
   );
 }
 
-function NeedCard({ need }: { need: typeof needs[number] }) {
-  return <Link href={`/needs/${need.id}`} className="need-card"><div className="need-image"><img src={need.image} alt="" /><span className={`badge ${need.verification === "Verified" ? "badge-sage" : "badge-cream"}`}>{need.verification === "Verified" && <ShieldCheck size={13} />}{need.verification}</span><span className={`urgency urgency-${need.urgency.toLowerCase()}`}>{need.urgency} urgency</span></div><div className="need-card-body"><div className="need-meta"><span>{need.category}</span><span>{need.location}</span></div><h3>{need.title}</h3><p>{need.summary}</p><div className="progress-label"><span>{need.progress}% fulfilled</span><span>{need.beneficiaries} beneficiaries</span></div><div className="progress-track"><div style={{ width: `${need.progress}%` }} /></div><div className="need-footer"><span>{formatKsh(need.pledged)} <small>of {formatKsh(need.goal)}</small></span><span>{need.contributors} contributors <ArrowRight size={15} /></span></div></div></Link>;
+function NeedCard({ row }: { row: { need: { id: number; title: string; publicSummary: string | null; story: string; location: string; urgency: "low" | "medium" | "high"; verification: string; beneficiaryCount: number; goalAmount: number; lifecycle: string }; category: { name: string } | null } }) {
+  const { need, category } = row; const progress = ["fulfilled", "closed"].includes(need.lifecycle) ? 100 : 0;
+  return <Link href={`/needs/${need.id}`} className="need-card"><div className="need-image need-image-placeholder"><span className="badge badge-cream">{need.verification.replaceAll("_", " ")}</span><span className={`urgency urgency-${need.urgency}`}>{need.urgency} urgency</span></div><div className="need-card-body"><div className="need-meta"><span>{category?.name ?? "Community"}</span><span>{need.location}</span></div><h3>{need.title}</h3><p>{need.publicSummary ?? need.story}</p><div className="progress-label"><span>{progress}% fulfilled</span><span>{need.beneficiaryCount} beneficiaries</span></div><div className="progress-track"><div style={{ width: `${progress}%` }} /></div><div className="need-footer"><span>{formatKsh(need.goalAmount)} <small>goal</small></span><span>Open record <ArrowRight size={15} /></span></div></div></Link>;
 }

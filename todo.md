@@ -17,7 +17,15 @@
 - [x] Implement verification, report categories, notifications, lifecycle transitions, contribution status transitions, and secure validation/authorization.
 - [x] Add Vitest coverage for key server workflows and run typecheck/tests.
 - [x] Verify responsive UI content and routes in the running preview; mobile screenshot capture remains environment-limited.
-- [ ] Save the final project checkpoint and deliver the project version.
+- [x] Save the final project checkpoint and deliver the project version.
 - [x] Add focused Vitest coverage for optional integration fallbacks, metadata-only file references, lifecycle rules, and role boundaries.
 - [x] Verify the discovery, need detail, create-need, dashboard, and admin routes at desktop and mobile viewports with captured visual evidence.
 - [x] Connect optional ElevenLabs narration and file-reference adapters with graceful fallback behavior; credentials/storage URLs remain optional.
+
+# Scope change: database and Vercel preparation
+
+- [x] Replace demo-only need, contribution, report, dashboard, and moderation reads with relational database-backed procedures and UI states.
+- [x] Remove AI mockup copy, fake AI result presentation, and mock AI interactions from the product experience; retain only clearly optional server integration boundaries if requested.
+- [x] Add database seed/migration verification and tests for persisted needs, contributions, reports, and moderation workflows.
+- [x] Prepare Vercel-compatible build and deployment configuration, including environment-variable documentation and server/runtime compatibility review.
+- [ ] Validate the updated application and save a new checkpoint before handing over Vercel deployment steps.
