@@ -172,7 +172,12 @@ addNeedPath("/api/needs/file", async (req, res) => {
     const uploaded = await uploadToStorage(`needs/${needId}/${safeName}`, bytes, mimeType);
     await database.query("INSERT INTO need_files (needId, uploadedBy, fileKey, fileUrl, fileName, mimeType) VALUES (?, ?, ?, ?, ?, ?)", [needId, user.id, uploaded.key, uploaded.url, fileName.slice(0, 255), mimeType]);
     return res.status(201).json({ success: true, fileUrl: uploaded.url, fileName: fileName.slice(0, 255), mimeType });
-  } catch (error) { console.error("[Needs] File upload failed", error); return res.status(500).json({ error: "Unable to upload this file right now." }); }
+  } catch (error) {
+    const message = String(error);
+    console.error("[Needs] File upload failed:", message);
+    if (message.includes("Storage is not configured")) return res.status(503).json({ error: "Attachment storage is not configured for this deployment." });
+    return res.status(502).json({ error: "The attachment storage service rejected the upload." });
+  }
 });
 
 function trpcJson(res: express.Response, data: unknown, status = 200) { return res.status(status).json([{ result: { data } }]); }
