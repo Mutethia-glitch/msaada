@@ -62,3 +62,11 @@
 .source-list a { display:flex; justify-content:space-between; gap:12px; align-items:center; padding:15px 0; border-bottom:1px solid var(--line); color:var(--terracotta-dark); font-size:13px; line-height:1.4; }
 .story-cta { margin-top:15px; }
 @media (max-width:800px) { .story-hero,.story-grid,.story-sources { grid-template-columns:1fr; gap:35px; } .story-hero { padding:60px 0; } .story-hero-art { min-height:210px; } .story-metrics { grid-template-columns:repeat(2,1fr); } .story-outcome { padding:38px 27px; } .story-outcome h2 { font-size:37px; } .story-location { font-size:9px; } }
+
+.category-add-toggle { margin-top:18px; color:var(--terracotta-dark); }
+.new-category-row { display:flex; gap:10px; margin-top:14px; max-width:620px; }
+.new-category-row input { flex:1; min-width:0; }
+.form-errors { margin-top:24px; padding:16px 18px; border:1px solid #e4b6a5; border-radius:10px; background:#fff5ef; color:#8d4432; font-size:13px; line-height:1.55; }
+.form-errors strong { color:#6f3325; }
+.form-errors ul { margin:7px 0 0; padding-left:18px; }
+@media (max-width:600px) { .new-category-row { flex-direction:column; } }

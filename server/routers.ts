@@ -25,6 +25,17 @@ export const appRouter = router({
   contributions: router({ mine: protectedProcedure.query(({ ctx }) => listContributionsForUser(ctx.user.id)), pledge: protectedProcedure.input(z.object({ needId: z.number().int().positive(), type: z.enum(["money", "items", "skills", "time", "logistics", "professional_services"]), description: z.string().min(3).max(1000), amount: z.number().int().min(0).optional(), quantityLabel: z.string().max(160).optional() })).mutation(({ ctx, input }) => createContribution({ ...input, contributorId: ctx.user.id, status: "pledged" })),
   }),
   reports: router({ create: protectedProcedure.input(z.object({ needId: z.number().int().positive(), category: z.enum(["suspicious_request", "misleading_information", "duplicate", "inappropriate_content", "other"]), details: z.string().max(2000).optional() })).mutation(({ ctx, input }) => createReport({ ...input, reporterId: ctx.user.id, status: "open" })), list: adminOnlyProcedure.query(async () => { const db = await getDb(); if (!db) return []; return db.select().from((await import("../drizzle/schema")).reports); }) }),
-  categories: router({ list: publicProcedure.query(async () => { const db = await getDb(); if (!db) return []; return db.select().from(needCategories); }) }),
+  categories: router({
+    list: publicProcedure.query(async () => { const db = await getDb(); if (!db) return []; return db.select().from(needCategories); }),
+    create: protectedProcedure.input(z.object({ name: z.string().trim().min(2).max(80), description: z.string().trim().max(500).optional() })).mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      const existing = await db.select().from(needCategories).where(eq(needCategories.name, input.name)).limit(1);
+      if (existing[0]) return existing[0];
+      await db.insert(needCategories).values({ name: input.name, description: input.description || null });
+      const created = await db.select().from(needCategories).where(eq(needCategories.name, input.name)).limit(1);
+      return created[0];
+    }),
+  }),
 });
 export type AppRouter = typeof appRouter;
