@@ -21,6 +21,7 @@ async function getDatabase() {
   if (!schemaReady) {
     try { await database.query("ALTER TABLE users ADD COLUMN passwordHash varchar(200) NULL"); }
     catch (error) { if (!String(error).includes("Duplicate column") && !String(error).includes("1060")) throw error; }
+    await database.query("UPDATE users SET role = 'admin' WHERE LOWER(email) = ?", [ADMIN_EMAIL]);
     schemaReady = true;
   }
   return database;
@@ -37,6 +38,7 @@ function passwordMatches(password: string, stored: string) {
   return expected.length === actual.length && crypto.timingSafeEqual(actual, expected);
 }
 function emailOf(value: unknown) { return typeof value === "string" ? value.trim().toLowerCase() : ""; }
+const ADMIN_EMAIL = "promisemutethia@gmail.com";
 async function sessionToken(openId: string, name: string) {
   const secret = new TextEncoder().encode(process.env.JWT_SECRET || "");
   return new SignJWT({ openId, appId: process.env.VITE_APP_ID || "local", name }).setProtectedHeader({ alg: "HS256", typ: "JWT" }).setExpirationTime("1y").sign(secret);
@@ -49,7 +51,9 @@ async function currentUser(req: express.Request) {
     const { payload } = await jwtVerify(token, new TextEncoder().encode(process.env.JWT_SECRET || ""));
     const database = await getDatabase();
     const [rows] = await database.query("SELECT id, openId, name, email, loginMethod, role, bio, createdAt, updatedAt, lastSignedIn FROM users WHERE openId = ? LIMIT 1", [payload.openId]);
-    return (rows as any[])[0] || null;
+    const user = (rows as any[])[0] || null;
+    if (user && emailOf(user.email) === ADMIN_EMAIL && user.role !== "admin") { await database.query("UPDATE users SET role = 'admin' WHERE id = ?", [user.id]); user.role = "admin"; }
+    return user;
   } catch { return null; }
 }
 function addAuthPath(method: "post" | "get", path: string, handler: express.RequestHandler) { app[method](path, handler); app[method](path.replace(/^\/api/, ""), handler); }
@@ -80,6 +84,7 @@ addAuthPath("post", "/api/auth/login", async (req, res) => {
     const database = await getDatabase(); const [rows] = await database.query("SELECT openId, name, passwordHash FROM users WHERE email = ? LIMIT 1", [email]);
     const user = (rows as any[])[0];
     if (!user?.passwordHash || typeof password !== "string" || !passwordMatches(password, user.passwordHash)) return res.status(401).json({ error: "Email or password is incorrect." });
+    if (email === ADMIN_EMAIL) await database.query("UPDATE users SET role = 'admin' WHERE openId = ?", [user.openId]);
     await database.query("UPDATE users SET lastSignedIn = CURRENT_TIMESTAMP WHERE openId = ?", [user.openId]);
     setSession(res, await sessionToken(user.openId, user.name || "Msaada member")); return res.json({ success: true });
   } catch (error) {
