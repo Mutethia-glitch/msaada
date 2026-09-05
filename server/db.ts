@@ -1,12 +1,25 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { contributions, InsertUser, needCategories, needs, reports, users, verificationRecords } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _schemaReady = false;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try { _db = drizzle(process.env.DATABASE_URL); } catch (error) { console.warn("[Database] Failed to connect:", error); _db = null; }
+  }
+  if (_db && !_schemaReady) {
+    try {
+      await _db.execute(sql`ALTER TABLE users ADD COLUMN passwordHash varchar(200) NULL`);
+      _schemaReady = true;
+    } catch (error) {
+      // MySQL/TiDB reports a duplicate-column error when the migration already ran.
+      // Treat that as success; other errors remain visible and will be retried.
+      const message = String(error);
+      if (message.includes("Duplicate column") || message.includes("1060")) _schemaReady = true;
+      else console.warn("[Database] Schema bootstrap deferred:", message);
+    }
   }
   return _db;
 }
