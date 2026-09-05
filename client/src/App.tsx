@@ -1,20 +1,22 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
+import { lazy, Suspense } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import Home from "./pages/Home";
-import Discover from "./pages/Discover";
-import NeedDetail from "./pages/NeedDetail";
-import CreateNeed from "./pages/CreateNeed";
-import Dashboard from "./pages/Dashboard";
-import Admin from "./pages/Admin";
-import SignIn from "./pages/SignIn";
-import ImpactStory from "./pages/ImpactStory";
+
+const Home = lazy(() => import("./pages/Home"));
+const Discover = lazy(() => import("./pages/Discover"));
+const NeedDetail = lazy(() => import("./pages/NeedDetail"));
+const CreateNeed = lazy(() => import("./pages/CreateNeed"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Admin = lazy(() => import("./pages/Admin"));
+const SignIn = lazy(() => import("./pages/SignIn"));
+const ImpactStory = lazy(() => import("./pages/ImpactStory"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
 
 function Router() {
-  return (
+  return <Suspense fallback={<div className="route-loading">Loading Msaada…</div>}>
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/discover" component={Discover} />
@@ -27,7 +29,7 @@ function Router() {
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
-  );
+  </Suspense>;
 }
 
 export default function App() {
