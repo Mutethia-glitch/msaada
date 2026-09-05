@@ -113,4 +113,23 @@ addCategoryPath("post", "/api/categories", async (req, res) => {
   } catch (error) { console.error("[Categories] Create failed", error); return res.status(500).json({ error: "Unable to add this category." }); }
 });
 
+function addNeedPath(path: string, handler: express.RequestHandler) { app.post(path, handler); app.post(path.replace(/^\/api/, ""), handler); }
+addNeedPath("/api/needs/draft", async (req, res) => {
+  try {
+    const user = await currentUser(req);
+    if (!user) return res.status(401).json({ error: "Please sign in before posting a need." });
+    const { title, story, publicSummary, location, urgency, beneficiaryCount, quantityLabel, goalAmount, categoryId, submitForReview } = req.body ?? {};
+    if (typeof title !== "string" || title.trim().length < 3) return res.status(400).json({ error: "Add a need title of at least 3 characters." });
+    if (typeof story !== "string" || story.trim().length < 20) return res.status(400).json({ error: "Write at least 20 characters describing the need." });
+    if (typeof location !== "string" || location.trim().length < 2) return res.status(400).json({ error: "Add a location." });
+    if (!Number.isInteger(categoryId) || categoryId < 1) return res.status(400).json({ error: "Choose a category." });
+    const database = await getDatabase();
+    const [categoryRows] = await database.query("SELECT id FROM need_categories WHERE id = ? LIMIT 1", [categoryId]);
+    if (!(categoryRows as any[]).length) return res.status(400).json({ error: "Choose a valid category." });
+    const lifecycle = submitForReview ? "pending_review" : "draft";
+    const [result] = await database.query("INSERT INTO needs (creatorId, categoryId, title, story, publicSummary, location, urgency, lifecycle, verification, beneficiaryCount, quantityLabel, goalAmount, aiAssisted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending_review', ?, ?, ?, 0)", [user.id, categoryId, title.trim(), story.trim(), typeof publicSummary === "string" ? publicSummary.trim() : story.trim().slice(0, 3000), location.trim(), ["low", "medium", "high"].includes(urgency) ? urgency : "medium", lifecycle, Number.isInteger(beneficiaryCount) ? beneficiaryCount : 0, typeof quantityLabel === "string" ? quantityLabel.trim() || null : null, Number.isInteger(goalAmount) ? goalAmount : 0]);
+    return res.status(201).json({ success: true, needId: (result as any).insertId, lifecycle });
+  } catch (error) { console.error("[Needs] Draft creation failed", error); return res.status(500).json({ error: "Unable to save this need right now." }); }
+});
+
 export default function api(req: express.Request, res: express.Response) { return app(req, res); }
