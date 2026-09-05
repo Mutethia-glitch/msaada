@@ -28,4 +28,21 @@
 - [x] Remove AI mockup copy, fake AI result presentation, and mock AI interactions from the product experience; retain only clearly optional server integration boundaries if requested.
 - [x] Add database seed/migration verification and tests for persisted needs, contributions, reports, and moderation workflows.
 - [x] Prepare Vercel-compatible build and deployment configuration, including environment-variable documentation and server/runtime compatibility review.
-- [ ] Validate the updated application and save a new checkpoint before handing over Vercel deployment steps.
+- [x] Validate the updated application and save a new checkpoint before handing over Vercel deployment steps.
+
+# Scope change: Vercel production handoff
+
+- [ ] Verify the connected Vercel project, production environment variables, database connection, OAuth callback, and build settings.
+- [ ] Hand off the final Vercel production deployment for the user to trigger from their Vercel account.
+
+# Scope change: requested Vercel domain
+
+- [ ] Inspect the connected Vercel project and verify whether `msaada.vercel.app` is available or already assigned.
+- [ ] Verify production environment variables, build settings, database connectivity prerequisites, and OAuth callback configuration for the connected Vercel project.
+- [ ] Hand off the final production deployment and domain assignment for the user to trigger in Vercel.
+
+# Scope change: GitHub repository handoff
+
+- [ ] Verify GitHub authentication and the target account owner after the user connects GitHub.
+- [ ] Create a GitHub repository named `msaada` and push the current project files to its default branch.
+- [ ] Provide the GitHub repository URL and updated Vercel import instructions.
