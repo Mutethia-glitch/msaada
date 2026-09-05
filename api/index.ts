@@ -124,9 +124,13 @@ function addNeedPath(path: string, handler: express.RequestHandler) { app.post(p
 app.get("/api/public/needs", async (_req, res) => {
   try {
     const database = await getDatabase();
-    const [rows] = await database.query("SELECT n.*, c.id categoryId, c.name categoryName, c.description categoryDescription, c.createdAt categoryCreatedAt FROM needs n LEFT JOIN need_categories c ON n.categoryId = c.id WHERE n.lifecycle = 'active' ORDER BY n.updatedAt DESC");
-    return res.json((rows as any[]).map((row) => { const { categoryId, categoryName, categoryDescription, categoryCreatedAt, ...need } = row; return { need, category: categoryId ? { id: categoryId, name: categoryName, description: categoryDescription, createdAt: categoryCreatedAt } : null }; }));
+    const [rows] = await database.query("SELECT n.*, c.id categoryId, c.name categoryName, c.description categoryDescription, c.createdAt categoryCreatedAt, f.id fileId FROM needs n LEFT JOIN need_categories c ON n.categoryId = c.id LEFT JOIN need_files f ON f.needId = n.id AND f.mimeType LIKE 'image/%' WHERE n.lifecycle = 'active' ORDER BY n.updatedAt DESC");
+    const seen = new Set<number>();
+    return res.json((rows as any[]).flatMap((row) => { if (seen.has(row.id)) return []; seen.add(row.id); const { categoryId, categoryName, categoryDescription, categoryCreatedAt, fileId, ...need } = row; return [{ need, category: categoryId ? { id: categoryId, name: categoryName, description: categoryDescription, createdAt: categoryCreatedAt } : null, imageUrl: fileId ? `/api/public/needs/${row.id}/preview` : null }]; }));
   } catch (error) { console.error("[Needs] Public list failed", error); return res.status(500).json({ error: "Unable to load needs." }); }
+});
+app.get("/api/public/needs/:needId/preview", async (req, res) => {
+  try { const database = await getDatabase(); const [files] = await database.query("SELECT fileKey, mimeType FROM need_files f INNER JOIN needs n ON n.id = f.needId WHERE f.needId = ? AND f.mimeType LIKE 'image/%' AND n.lifecycle = 'active' ORDER BY f.createdAt DESC LIMIT 1", [Number(req.params.needId)]); const file = (files as any[])[0]; if (!file) return res.status(404).send("Image not found."); const blob = await get(file.fileKey, { access: "private" }); if (blob.statusCode !== 200) return res.status(404).send("Image not found."); res.setHeader("Content-Type", file.mimeType); res.setHeader("Cache-Control", "private, max-age=300"); return res.send(Buffer.from(await new Response(blob.stream).arrayBuffer())); } catch (error) { console.error("[Needs] Public image preview failed", error); return res.status(502).send("Unable to load image."); }
 });
 app.get("/api/admin/needs", async (req, res) => {
   const user = await currentUser(req);
