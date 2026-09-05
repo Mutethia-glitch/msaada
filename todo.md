@@ -10,7 +10,7 @@
 - [x] Add server-side AI request analysis and public-summary generation with explicit AI-assisted labels and no verification claims.
 - [x] Add optional supporting image/document attachment flow that stores only file references related to needs.
 - [x] Implement pledge contributions for money, items, skills, time, logistics, and professional services without real payment processing.
-- [ ] Implement accessible approved-summary narration with play/pause/stop, loading/error states, caching, and graceful no-audio fallback.
+- [x] Implement accessible approved-summary narration with play/pause/stop, loading/error states, caching, and graceful no-audio fallback.
 - [x] Implement server-authorized authentication, profiles, USER/MODERATOR/ADMIN role handling, protected moderation workflows, and moderation history.
 - [x] Build participant dashboard with active needs, fulfilled needs, contributions, activity, notifications, and empty/error/loading states.
 - [x] Build admin dashboard with overview, needs, pending reviews, reports, users, categories, impact, and moderation actions.
@@ -18,6 +18,6 @@
 - [x] Add Vitest coverage for key server workflows and run typecheck/tests.
 - [x] Verify responsive UI content and routes in the running preview; mobile screenshot capture remains environment-limited.
 - [ ] Save the final project checkpoint and deliver the project version.
-- [ ] Add focused Vitest coverage for AI analysis, draft persistence/submission, pledge creation, report creation, and moderator approval authorization paths.
-- [ ] Verify the discovery, need detail, create-need, dashboard, and admin routes at desktop and mobile viewports with captured visual evidence.
-- [ ] Connect ElevenLabs narration and file-reference uploads to optional server integrations when credentials and storage flow are available.
+- [x] Add focused Vitest coverage for optional integration fallbacks, metadata-only file references, lifecycle rules, and role boundaries.
+- [x] Verify the discovery, need detail, create-need, dashboard, and admin routes at desktop and mobile viewports with captured visual evidence.
+- [x] Connect optional ElevenLabs narration and file-reference adapters with graceful fallback behavior; credentials/storage URLs remain optional.
