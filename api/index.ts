@@ -217,7 +217,10 @@ addNeedPath("/api/needs/draft", async (req, res) => {
     if (!(categoryRows as any[]).length) return res.status(400).json({ error: "Choose a valid category." });
     const lifecycle = submitForReview ? "pending_review" : "draft";
     const [result] = await database.query("INSERT INTO needs (creatorId, categoryId, title, story, publicSummary, location, urgency, lifecycle, verification, beneficiaryCount, quantityLabel, goalAmount, aiAssisted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending_review', ?, ?, ?, 0)", [user.id, categoryId, title.trim(), story.trim(), typeof publicSummary === "string" ? publicSummary.trim() : story.trim().slice(0, 3000), location.trim(), ["low", "medium", "high"].includes(urgency) ? urgency : "medium", lifecycle, Number.isInteger(beneficiaryCount) ? beneficiaryCount : 0, typeof quantityLabel === "string" ? quantityLabel.trim() || null : null, Number.isInteger(goalAmount) ? goalAmount : 0]);
-    return res.status(201).json({ success: true, needId: (result as any).insertId, lifecycle });
+    const needId = (result as any).insertId;
+    const [admins] = await database.query("SELECT id FROM users WHERE role IN ('admin', 'moderator')");
+    for (const admin of admins as any[]) await createNotification(Number(admin.id), "New need submitted", `${user.name || user.email || "A member"} submitted a need for review.`);
+    return res.status(201).json({ success: true, needId, lifecycle });
   } catch (error) { console.error("[Needs] Draft creation failed", error); return res.status(500).json({ error: "Unable to save this need right now." }); }
 });
 addNeedPath("/api/needs/file", async (req, res) => {
