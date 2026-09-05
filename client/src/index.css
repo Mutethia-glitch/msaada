@@ -125,3 +125,7 @@
 .category-row p { color: #727a72; font-size: 10px; margin: 4px 0 0; }
 .category-edit-row input { min-width: 0; flex: 1; border: 1px solid #dedfd6; border-radius: 5px; padding: 8px; font-size: 11px; background: #fffdf8; }
 @media (max-width:680px) { .category-edit-row { align-items: stretch; flex-direction: column; } .category-row { align-items: flex-start; } }
+
+.mini-need-image { width: 58px; height: 58px; flex: 0 0 58px; object-fit: contain; object-position: center; background: #eeeae0; border-radius: 5px; border: 1px solid #dedfd6; }
+.mini-need .mini-progress { display: block; height: 4px; background: #dcddd4; border-radius: 5px; margin-top: 7px; overflow: hidden; }
+.mini-need .mini-progress > span { display: block; height: 100%; background: var(--sage); border-radius: 5px; }
