@@ -70,3 +70,5 @@
 .form-errors strong { color:#6f3325; }
 .form-errors ul { margin:7px 0 0; padding-left:18px; }
 @media (max-width:600px) { .new-category-row { flex-direction:column; } }
+
+.category-error { margin:10px 0 0; color:#9b4834; font-size:12px; line-height:1.45; }
