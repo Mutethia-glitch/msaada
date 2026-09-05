@@ -155,7 +155,7 @@ addNeedPath("/api/needs/file", async (req, res) => {
     const [owned] = await database.query("SELECT id FROM needs WHERE id = ? AND creatorId = ? LIMIT 1", [needId, user.id]);
     if (!(owned as any[]).length) return res.status(404).json({ error: "Need not found." });
     const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-180) || "attachment";
-    const uploaded = await put(`needs/${needId}/${safeName}`, bytes, { access: "public", contentType: mimeType, addRandomSuffix: true });
+    const uploaded = await put(`needs/${needId}/${safeName}`, bytes, { access: "private", contentType: mimeType, addRandomSuffix: true });
     await database.query("INSERT INTO need_files (needId, uploadedBy, fileKey, fileUrl, fileName, mimeType) VALUES (?, ?, ?, ?, ?, ?)", [needId, user.id, uploaded.pathname, uploaded.url, fileName.slice(0, 255), mimeType]);
     return res.status(201).json({ success: true, fileUrl: uploaded.url, fileName: fileName.slice(0, 255), mimeType });
   } catch (error) {
