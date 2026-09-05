@@ -98,6 +98,11 @@ addAuthPath("post", "/api/auth/login", async (req, res) => {
 });
 addAuthPath("get", "/api/auth/me", async (req, res) => res.json(await currentUser(req)));
 addAuthPath("post", "/api/auth/logout", async (_req, res) => { res.clearCookie(COOKIE, { httpOnly: true, secure: true, sameSite: "none", path: "/" }); res.json({ success: true }); });
+app.get("/api/dashboard", async (req, res) => {
+  const user = await currentUser(req);
+  if (!user) return res.status(401).json({ error: "Please sign in." });
+  try { const database = await getDatabase(); const [needRows] = await database.query("SELECT n.*, c.id categoryId, c.name categoryName, c.description categoryDescription, c.createdAt categoryCreatedAt FROM needs n LEFT JOIN need_categories c ON n.categoryId = c.id WHERE n.creatorId = ? ORDER BY n.updatedAt DESC", [user.id]); const [contributionRows] = await database.query("SELECT co.*, n.id needId, n.title needTitle FROM contributions co LEFT JOIN needs n ON co.needId = n.id WHERE co.contributorId = ? ORDER BY co.updatedAt DESC", [user.id]); return res.json({ needs: (needRows as any[]).map((row) => { const { categoryId, categoryName, categoryDescription, categoryCreatedAt, ...need } = row; return { need, category: categoryId ? { id: categoryId, name: categoryName, description: categoryDescription, createdAt: categoryCreatedAt } : null }; }), contributions: (contributionRows as any[]).map((row) => ({ contribution: { id: row.id, needId: row.needId, contributorId: row.contributorId, type: row.type, description: row.description, amount: row.amount, quantityLabel: row.quantityLabel, status: row.status, createdAt: row.createdAt, updatedAt: row.updatedAt }, need: row.needId ? { id: row.needId, title: row.needTitle } : null })) }); } catch (error) { console.error("[Dashboard] Load failed", error); return res.status(500).json({ error: "Unable to load dashboard activity." }); }
+});
 
 function addCategoryPath(method: "get" | "post", path: string, handler: express.RequestHandler) { app[method](path, handler); app[method](path.replace(/^\/api/, ""), handler); }
 addCategoryPath("get", "/api/categories", async (_req, res) => {
