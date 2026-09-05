@@ -121,6 +121,13 @@ addCategoryPath("post", "/api/categories", async (req, res) => {
 });
 
 function addNeedPath(path: string, handler: express.RequestHandler) { app.post(path, handler); app.post(path.replace(/^\/api/, ""), handler); }
+app.get("/api/public/needs", async (_req, res) => {
+  try {
+    const database = await getDatabase();
+    const [rows] = await database.query("SELECT n.*, c.id categoryId, c.name categoryName, c.description categoryDescription, c.createdAt categoryCreatedAt FROM needs n LEFT JOIN need_categories c ON n.categoryId = c.id WHERE n.lifecycle = 'active' ORDER BY n.updatedAt DESC");
+    return res.json((rows as any[]).map((row) => { const { categoryId, categoryName, categoryDescription, categoryCreatedAt, ...need } = row; return { need, category: categoryId ? { id: categoryId, name: categoryName, description: categoryDescription, createdAt: categoryCreatedAt } : null }; }));
+  } catch (error) { console.error("[Needs] Public list failed", error); return res.status(500).json({ error: "Unable to load needs." }); }
+});
 addNeedPath("/api/needs/draft", async (req, res) => {
   try {
     const user = await currentUser(req);
