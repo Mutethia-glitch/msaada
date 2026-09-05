@@ -129,3 +129,9 @@
 .mini-need-image { width: 58px; height: 58px; flex: 0 0 58px; object-fit: contain; object-position: center; background: #eeeae0; border-radius: 5px; border: 1px solid #dedfd6; }
 .mini-need .mini-progress { display: block; height: 4px; background: #dcddd4; border-radius: 5px; margin-top: 7px; overflow: hidden; }
 .mini-need .mini-progress > span { display: block; height: 100%; background: var(--sage); border-radius: 5px; }
+
+/* Verification and urgency badges must reserve their own layout space. */
+.detail-intro { min-width: 0; }
+.detail-tags { position: static !important; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 18px !important; min-height: 32px; }
+.detail-tags > span { position: static !important; transform: none !important; }
+.detail-intro > .section-kicker { display: block; clear: both; line-height: 1.6; margin: 0 0 10px; }
