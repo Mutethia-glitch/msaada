@@ -138,7 +138,7 @@ addNeedPath("/api/needs/draft", async (req, res) => {
   } catch (error) { console.error("[Needs] Draft creation failed", error); return res.status(500).json({ error: "Unable to save this need right now." }); }
 });
 
-function trpcJson(res: express.Response, data: unknown, status = 200) { return res.status(status).json([{ result: { data: { json: data } } }]); }
+function trpcJson(res: express.Response, data: unknown, status = 200) { return res.status(status).json([{ result: { data } }]); }
 app.use((req, res, next) => {
   const requestPath = (req.originalUrl || req.url || "").split("?")[0];
   if (!requestPath.startsWith("/api/trpc/") && !requestPath.startsWith("/trpc/")) return next();
