@@ -43,6 +43,6 @@
 
 # Scope change: GitHub repository handoff
 
-- [ ] Verify GitHub authentication and the target account owner after the user connects GitHub.
-- [ ] Create a GitHub repository named `msaada` and push the current project files to its default branch.
+- [x] Verify GitHub authentication and the target account owner after the user connects GitHub.
+- [x] Create a GitHub repository named `msaada` and push the current project files to its default branch.
 - [ ] Provide the GitHub repository URL and updated Vercel import instructions.
