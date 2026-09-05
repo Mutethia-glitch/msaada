@@ -15,6 +15,27 @@ function getPool() {
   if (!pool && process.env.DATABASE_URL) pool = mysql.createPool(process.env.DATABASE_URL);
   return pool;
 }
+async function runChallengeCleanup(database: mysql.Pool) {
+  await database.query("CREATE TABLE IF NOT EXISTS msaada_cleanup_markers (name varchar(120) PRIMARY KEY, createdAt timestamp DEFAULT CURRENT_TIMESTAMP)");
+  const [markers] = await database.query("SELECT name FROM msaada_cleanup_markers WHERE name = 'dev-community-weekend-cleanup' LIMIT 1");
+  if ((markers as any[]).length) return;
+  await database.query("START TRANSACTION");
+  try {
+    await database.query("CREATE TEMPORARY TABLE cleanup_need_ids AS SELECT n.id FROM needs n LEFT JOIN users u ON u.id = n.creatorId WHERE LOWER(COALESCE(u.email, '')) <> ? OR n.lifecycle = 'draft' OR n.aiAssisted = 1", [ADMIN_EMAIL]);
+    await database.query("DELETE FROM contributions WHERE needId IN (SELECT id FROM cleanup_need_ids) OR contributorId NOT IN (SELECT id FROM users WHERE LOWER(email) = ?)", [ADMIN_EMAIL]);
+    await database.query("DELETE FROM need_files WHERE needId IN (SELECT id FROM cleanup_need_ids) OR uploadedBy NOT IN (SELECT id FROM users WHERE LOWER(email) = ?)", [ADMIN_EMAIL]);
+    await database.query("DELETE FROM need_updates WHERE needId IN (SELECT id FROM cleanup_need_ids) OR authorId NOT IN (SELECT id FROM users WHERE LOWER(email) = ?)", [ADMIN_EMAIL]);
+    await database.query("DELETE FROM verification_records WHERE needId IN (SELECT id FROM cleanup_need_ids) OR reviewerId NOT IN (SELECT id FROM users WHERE LOWER(email) = ?)", [ADMIN_EMAIL]);
+    await database.query("DELETE FROM impact_records WHERE needId IN (SELECT id FROM cleanup_need_ids) OR reportedBy NOT IN (SELECT id FROM users WHERE LOWER(email) = ?)", [ADMIN_EMAIL]);
+    await database.query("DELETE FROM reports WHERE needId IN (SELECT id FROM cleanup_need_ids) OR reporterId NOT IN (SELECT id FROM users WHERE LOWER(email) = ?)", [ADMIN_EMAIL]);
+    await database.query("DELETE FROM needs WHERE id IN (SELECT id FROM cleanup_need_ids)");
+    await database.query("DELETE FROM notifications WHERE userId NOT IN (SELECT id FROM users WHERE LOWER(email) = ?)", [ADMIN_EMAIL]);
+    await database.query("DELETE FROM users WHERE LOWER(COALESCE(email, '')) <> ?", [ADMIN_EMAIL]);
+    await database.query("INSERT INTO msaada_cleanup_markers (name) VALUES ('dev-community-weekend-cleanup')");
+    await database.query("COMMIT");
+    console.log("[Cleanup] Dev community weekend production cleanup completed");
+  } catch (error) { await database.query("ROLLBACK"); throw error; }
+}
 async function getDatabase() {
   const database = getPool();
   if (!database) throw new Error("DATABASE_URL is not configured");
@@ -22,6 +43,7 @@ async function getDatabase() {
     try { await database.query("ALTER TABLE users ADD COLUMN passwordHash varchar(200) NULL"); }
     catch (error) { if (!String(error).includes("Duplicate column") && !String(error).includes("1060")) throw error; }
     await database.query("UPDATE users SET role = 'admin' WHERE LOWER(email) = ?", [ADMIN_EMAIL]);
+    await runChallengeCleanup(database);
     schemaReady = true;
   }
   return database;
