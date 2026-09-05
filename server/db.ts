@@ -1,5 +1,5 @@
 import { and, desc, eq, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2/index.js";
+import { drizzle } from "drizzle-orm/mysql2";
 import { contributions, InsertUser, needCategories, needs, reports, users, verificationRecords } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
