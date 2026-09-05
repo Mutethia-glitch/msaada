@@ -14,8 +14,9 @@ function need(row: any) { const { categoryId, categoryName, categoryDescription,
 
 export function registerTrpcAdapter(app: Express) {
   const handler = async (req: Request, res: Response) => {
-    const procedure = req.path.replace(/^\//, "");
+    let procedure = "unknown";
     try {
+      procedure = (req.path || req.url || "").replace(/^\//, "").split("?")[0];
       if (procedure === "auth.me") return send(res, await currentUserForApi(req));
       if (procedure === "auth.logout") { res.clearCookie("app_session_id", { httpOnly: true, secure: true, sameSite: "none", path: "/" }); return send(res, { success: true }); }
       const db = await getDatabase();
