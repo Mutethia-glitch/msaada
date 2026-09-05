@@ -157,3 +157,19 @@
 .notification-empty { padding: 22px 15px; margin: 0; color: #798178; font-size: 12px; }
 .mobile-admin-link { display: none; }
 @media (max-width: 680px) { .mobile-admin-link { display: inline-flex; align-items: center; color: inherit; font-size: 11px; font-weight: 600; text-decoration: none; white-space: nowrap; padding: 7px 9px; border: 1px solid #dedfd6; border-radius: 6px; } .notification-popover { right: -46px; } }
+
+.site-footer { border-top: 1px solid var(--line); background: #f1eee5; }
+.site-footer-inner { min-height: 112px; display: flex; align-items: center; justify-content: space-between; gap: 28px; flex-wrap: wrap; padding-top: 25px; padding-bottom: 25px; }
+.site-footer-links { display: flex; align-items: center; justify-content: center; gap: 20px; flex-wrap: wrap; color: #697269; font-size: 12px; }
+.site-footer-links a:hover { color: var(--terracotta-dark); }
+.site-footer-copy { margin: 0; color: #92968f; font-size: 11px; }
+.legal-page { max-width: 820px; padding-top: 76px; padding-bottom: 96px; min-height: 68vh; }
+.legal-page h1 { font: 800 clamp(46px, 7vw, 72px)/.98 Manrope, sans-serif; letter-spacing: -.09em; margin: 18px 0 25px; }
+.legal-page h1 em { font-family: Georgia, serif; font-weight: 400; letter-spacing: -.08em; }
+.legal-lede { max-width: 640px; color: #687168; font-size: 17px; line-height: 1.7; margin-bottom: 55px; }
+.legal-page section { border-top: 1px solid var(--line); padding: 25px 0 8px; }
+.legal-page section h2 { font: 600 20px Manrope, sans-serif; letter-spacing: -.04em; margin: 0 0 10px; }
+.legal-page section p { max-width: 680px; color: #697269; font-size: 14px; line-height: 1.75; margin: 0 0 18px; }
+.faq-list { margin-bottom: 28px; }
+.legal-actions { display: flex; align-items: center; gap: 22px; margin-top: 30px; }
+@media (max-width: 680px) { .site-footer-inner { align-items: flex-start; flex-direction: column; gap: 17px; } .site-footer-links { justify-content: flex-start; gap: 12px 17px; } .legal-page { padding-top: 48px; padding-bottom: 62px; } .legal-lede { font-size: 15px; margin-bottom: 38px; } .legal-actions { align-items: flex-start; flex-direction: column; } }

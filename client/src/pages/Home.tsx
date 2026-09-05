@@ -59,7 +59,6 @@ export default function Home() {
 
         <section className="cta-section container"><div><span className="section-kicker">Start where you are</span><h2>There is always<br /><em>a way to help.</em></h2></div><div className="cta-actions"><Link href="/discover" className="button button-dark button-large">Explore open needs <ArrowRight size={18} /></Link><Link href="/create" className="button button-outline button-large">Share a need</Link></div></section>
       </main>
-      <footer className="footer container"><Brand /><p>Need → Help → Impact</p><span>Database-backed community requests</span></footer>
     </div>
   );
 }
