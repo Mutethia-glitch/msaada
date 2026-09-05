@@ -10,7 +10,10 @@ export default async function api(req: Request, res: Response) {
     }
     return handler(req, res);
   } catch (error) {
-    console.error("[Vercel API] Failed to initialize", error);
-    return res.status(500).json({ error: "API initialization failed", detail: error instanceof Error ? error.message : String(error) });
+    const detail = error instanceof Error ? error.stack || error.message : String(error);
+    console.error("[Vercel API] Failed to initialize", detail);
+    res.statusCode = 500;
+    res.setHeader("Content-Type", "application/json");
+    return res.end(JSON.stringify({ error: "API initialization failed", detail }));
   }
 }
