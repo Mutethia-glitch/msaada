@@ -151,7 +151,9 @@ app.use((req, res, next) => {
       if (procedure === "auth.me") return trpcJson(res, await currentUser(req));
       if (procedure === "auth.logout") { res.clearCookie(COOKIE, { httpOnly: true, secure: true, sameSite: "none", path: "/" }); return trpcJson(res, { success: true }); }
       const database = await getDatabase(); const user = await currentUser(req);
-      if (["needs.mine", "needs.createDraft", "needs.approve", "contributions.mine", "contributions.pledge", "reports.create"].includes(procedure) && !user) return trpcJson(res, { message: "Please sign in" }, 401);
+      if (["needs.mine", "needs.createDraft", "needs.approve", "contributions.mine", "contributions.pledge", "reports.create", "needs.pending", "reports.list"].includes(procedure) && !user) return trpcJson(res, { message: "Please sign in" }, 401);
+      if (["needs.pending", "needs.approve"].includes(procedure) && !["admin", "moderator"].includes(user?.role || "")) return trpcJson(res, { message: "Moderator access required" }, 403);
+      if (procedure === "reports.list" && user?.role !== "admin") return trpcJson(res, { message: "Admin access required" }, 403);
       if (procedure === "categories.list") { const [rows] = await database.query("SELECT id, name, description, createdAt FROM need_categories ORDER BY name ASC"); return trpcJson(res, rows); }
       if (procedure === "needs.list" || procedure === "needs.mine" || procedure === "needs.pending") {
         const condition = procedure === "needs.mine" ? "WHERE n.creatorId = ?" : procedure === "needs.pending" ? "WHERE n.lifecycle = 'pending_review'" : "WHERE n.lifecycle = 'active'";
