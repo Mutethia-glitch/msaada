@@ -119,6 +119,13 @@ addCategoryPath("post", "/api/categories", async (req, res) => {
     return res.status(201).json((created as any[])[0]);
   } catch (error) { console.error("[Categories] Create failed", error); return res.status(500).json({ error: "Unable to add this category." }); }
 });
+app.put("/api/admin/categories/:categoryId", async (req, res) => {
+  const user = await currentUser(req);
+  if (user?.role !== "admin") return res.status(user ? 403 : 401).json({ error: "Admin access required." });
+  const categoryId = Number(req.params.categoryId); const name = typeof req.body?.name === "string" ? req.body.name.trim() : ""; const description = typeof req.body?.description === "string" ? req.body.description.trim() || null : null;
+  if (!Number.isInteger(categoryId) || categoryId < 1 || name.length < 2 || name.length > 80) return res.status(400).json({ error: "Category name must be between 2 and 80 characters." });
+  try { const database = await getDatabase(); const [duplicate] = await database.query("SELECT id FROM need_categories WHERE LOWER(name) = LOWER(?) AND id <> ? LIMIT 1", [name, categoryId]); if ((duplicate as any[]).length) return res.status(409).json({ error: "That category name already exists." }); const [result] = await database.query("UPDATE need_categories SET name = ?, description = ? WHERE id = ?", [name, description, categoryId]); if (!(result as any).affectedRows) return res.status(404).json({ error: "Category not found." }); const [updated] = await database.query("SELECT id, name, description, createdAt FROM need_categories WHERE id = ?", [categoryId]); return res.json((updated as any[])[0]); } catch (error) { console.error("[Categories] Update failed", error); return res.status(500).json({ error: "Unable to update this category." }); }
+});
 
 function addNeedPath(path: string, handler: express.RequestHandler) { app.post(path, handler); app.post(path.replace(/^\/api/, ""), handler); }
 app.get("/api/public/needs", async (_req, res) => {

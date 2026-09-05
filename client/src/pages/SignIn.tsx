@@ -27,7 +27,8 @@ export default function SignIn() {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "Something went wrong. Please try again.");
       await utils.auth.me.invalidate();
-      navigate("/dashboard");
+      const returnTo = new URLSearchParams(window.location.search).get("returnTo");
+      navigate(returnTo?.startsWith("/") ? returnTo : "/dashboard");
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Something went wrong. Please try again.");
     } finally {
@@ -63,4 +64,3 @@ export default function SignIn() {
     </main>
   );
 }
-
