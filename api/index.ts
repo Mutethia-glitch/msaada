@@ -92,4 +92,25 @@ addAuthPath("post", "/api/auth/login", async (req, res) => {
 addAuthPath("get", "/api/auth/me", async (req, res) => res.json(await currentUser(req)));
 addAuthPath("post", "/api/auth/logout", async (_req, res) => { res.clearCookie(COOKIE, { httpOnly: true, secure: true, sameSite: "none", path: "/" }); res.json({ success: true }); });
 
+function addCategoryPath(method: "get" | "post", path: string, handler: express.RequestHandler) { app[method](path, handler); app[method](path.replace(/^\/api/, ""), handler); }
+addCategoryPath("get", "/api/categories", async (_req, res) => {
+  try {
+    const database = await getDatabase();
+    const [rows] = await database.query("SELECT id, name, description, createdAt FROM need_categories ORDER BY name ASC");
+    return res.json(rows);
+  } catch (error) { console.error("[Categories] List failed", error); return res.status(500).json({ error: "Unable to load categories." }); }
+});
+addCategoryPath("post", "/api/categories", async (req, res) => {
+  try {
+    const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+    if (name.length < 2 || name.length > 80) return res.status(400).json({ error: "Category name must be between 2 and 80 characters." });
+    const database = await getDatabase();
+    const [existing] = await database.query("SELECT id, name, description, createdAt FROM need_categories WHERE LOWER(name) = LOWER(?) LIMIT 1", [name]);
+    if ((existing as any[])[0]) return res.json((existing as any[])[0]);
+    await database.query("INSERT INTO need_categories (name, description) VALUES (?, ?)", [name, typeof req.body?.description === "string" ? req.body.description.trim() || null : null]);
+    const [created] = await database.query("SELECT id, name, description, createdAt FROM need_categories WHERE LOWER(name) = LOWER(?) LIMIT 1", [name]);
+    return res.status(201).json((created as any[])[0]);
+  } catch (error) { console.error("[Categories] Create failed", error); return res.status(500).json({ error: "Unable to add this category." }); }
+});
+
 export default function api(req: express.Request, res: express.Response) { return app(req, res); }
