@@ -32,6 +32,9 @@ export function registerTrpcAdapter(app: Express) {
       return send(res, { message: `Unknown procedure: ${procedure}` }, 404);
     } catch (error) { console.error(`[tRPC adapter] ${procedure} failed`, error); return send(res, { message: "Internal server error" }, 500); }
   };
-  app.use("/api/trpc", handler);
-  app.use("/trpc", handler);
+  app.use((req, res, next) => {
+    const path = req.originalUrl || req.url || "";
+    if (!path.startsWith("/api/trpc/") && !path.startsWith("/trpc/")) return next();
+    void handler(req, res).catch((error) => { console.error("[tRPC adapter] unhandled", error); if (!res.headersSent) res.status(500).json(payload({ message: "Internal server error" })); });
+  });
 }
