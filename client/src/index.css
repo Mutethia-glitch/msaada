@@ -72,3 +72,10 @@
 @media (max-width:600px) { .new-category-row { flex-direction:column; } }
 
 .category-error { margin:10px 0 0; color:#9b4834; font-size:12px; line-height:1.45; }
+
+/* Keep moderation attachments inside a predictable row section. */
+.moderation-row { min-width: 0; align-items: center; }
+.moderation-thumb { width: 72px; height: 72px; flex: 0 0 72px; display: block; object-fit: contain; object-position: center; background: #eeeae0; border: 1px solid #dedfd6; border-radius: 6px; overflow: hidden; }
+.moderation-row > div { min-width: 0; }
+.moderation-row > div:nth-of-type(2) { overflow: hidden; }
+.moderation-row > div:nth-of-type(2) strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
