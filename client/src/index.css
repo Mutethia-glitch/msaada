@@ -141,3 +141,19 @@
 }
 
 .pledge-money-note { color: #727a72; font-size: 11px; line-height: 1.5; margin: 0; }
+
+.notification-wrap { position: relative; display: inline-flex; }
+.notification-button { position: relative; display: inline-flex; align-items: center; justify-content: center; border: 0; background: transparent; color: inherit; cursor: pointer; width: 36px; height: 36px; border-radius: 50%; }
+.notification-button:hover { background: rgba(34, 45, 38, .08); }
+.notification-badge { position: absolute; top: 1px; right: 0; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: var(--terracotta); color: #fff; font: 10px 'DM Mono', monospace; border: 2px solid var(--cream, #fffdf8); }
+.notification-popover { position: absolute; z-index: 80; right: 0; top: 44px; width: min(350px, calc(100vw - 32px)); background: #fffdf8; border: 1px solid #dedfd6; border-radius: 10px; box-shadow: 0 18px 50px rgba(31, 42, 35, .16); overflow: hidden; }
+.notification-heading { display: flex; align-items: center; justify-content: space-between; padding: 13px 15px; border-bottom: 1px solid #ecebe4; font-size: 13px; }
+.notification-heading button { display: inline-flex; align-items: center; gap: 5px; border: 0; background: transparent; color: var(--sage, #657b69); cursor: pointer; font-size: 11px; }
+.notification-item { display: flex; flex-direction: column; align-items: flex-start; width: 100%; padding: 13px 15px; border: 0; border-bottom: 1px solid #f0efe9; background: transparent; text-align: left; cursor: pointer; }
+.notification-item:hover, .notification-item.unread { background: #f5f5ee; }
+.notification-item strong { font-size: 13px; color: #1f2a23; }
+.notification-item span { margin-top: 4px; color: #5d665e; font-size: 12px; line-height: 1.4; }
+.notification-item small { margin-top: 7px; color: #929991; font-size: 10px; }
+.notification-empty { padding: 22px 15px; margin: 0; color: #798178; font-size: 12px; }
+.mobile-admin-link { display: none; }
+@media (max-width: 680px) { .mobile-admin-link { display: inline-flex; align-items: center; color: inherit; font-size: 11px; font-weight: 600; text-decoration: none; white-space: nowrap; padding: 7px 9px; border: 1px solid #dedfd6; border-radius: 6px; } .notification-popover { right: -46px; } }
