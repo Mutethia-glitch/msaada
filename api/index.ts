@@ -45,7 +45,7 @@ async function getDatabase() {
     try { await database.query("ALTER TABLE users ADD COLUMN passwordHash varchar(200) NULL"); }
     catch (error) { if (!String(error).includes("Duplicate column") && !String(error).includes("1060")) throw error; }
     await database.query("UPDATE users SET role = 'admin' WHERE LOWER(email) = ?", [ADMIN_EMAIL]);
-    await runChallengeCleanup(database);
+    // Cleanup attempt is disabled until the production database constraint issue is resolved safely.
     schemaReady = true;
   }
   return database;
@@ -127,7 +127,7 @@ addCategoryPath("get", "/api/categories", async (_req, res) => {
     const database = await getDatabase();
     const [rows] = await database.query("SELECT id, name, description, createdAt FROM need_categories ORDER BY name ASC");
     return res.json(rows);
-  } catch (error) { console.error("[Categories] List failed", error); return res.status(500).json({ error: String(error) }); }
+  } catch (error) { console.error("[Categories] List failed", error); return res.status(500).json({ error: "Unable to load categories." }); }
 });
 addCategoryPath("post", "/api/categories", async (req, res) => {
   try {
