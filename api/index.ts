@@ -162,7 +162,7 @@ addNeedPath("/api/needs/file", async (req, res) => {
     const message = String(error);
     console.error("[Needs] File upload failed:", message);
     if (message.includes("BLOB_READ_WRITE_TOKEN") || message.includes("No token")) return res.status(503).json({ error: "Vercel Blob storage is not connected to this deployment." });
-    return res.status(502).json({ error: "The attachment storage service rejected the upload." });
+    return res.status(502).json({ error: "The attachment storage service rejected the upload.", detail: message.slice(0, 240) });
   }
 });
 
