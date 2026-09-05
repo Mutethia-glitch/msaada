@@ -128,6 +128,34 @@ app.get("/api/public/needs", async (_req, res) => {
     return res.json((rows as any[]).map((row) => { const { categoryId, categoryName, categoryDescription, categoryCreatedAt, ...need } = row; return { need, category: categoryId ? { id: categoryId, name: categoryName, description: categoryDescription, createdAt: categoryCreatedAt } : null }; }));
   } catch (error) { console.error("[Needs] Public list failed", error); return res.status(500).json({ error: "Unable to load needs." }); }
 });
+app.get("/api/admin/needs", async (req, res) => {
+  const user = await currentUser(req);
+  if (user?.role !== "admin") return res.status(user ? 403 : 401).json({ error: "Admin access required." });
+  try {
+    const database = await getDatabase();
+    const [rows] = await database.query("SELECT n.*, c.name categoryName FROM needs n LEFT JOIN need_categories c ON n.categoryId = c.id ORDER BY n.updatedAt DESC");
+    return res.json((rows as any[]).map((row) => { const { categoryName, ...need } = row; return { need, category: categoryName ? { name: categoryName } : null }; }));
+  } catch (error) { console.error("[Admin] Needs list failed", error); return res.status(500).json({ error: "Unable to load admin needs." }); }
+});
+app.post("/api/admin/needs/delete", async (req, res) => {
+  const user = await currentUser(req);
+  if (user?.role !== "admin") return res.status(user ? 403 : 401).json({ error: "Admin access required." });
+  const needId = Number(req.body?.needId);
+  if (!Number.isInteger(needId) || needId < 1) return res.status(400).json({ error: "A valid need is required." });
+  try {
+    const database = await getDatabase();
+    const connection = await database.getConnection();
+    await connection.beginTransaction();
+    try {
+      for (const table of ["reports", "contributions", "need_updates", "verification_records", "impact_records", "need_files"]) await connection.query(`DELETE FROM ${table} WHERE needId = ?`, [needId]);
+      const [result] = await connection.query("DELETE FROM needs WHERE id = ?", [needId]);
+      await connection.commit();
+      connection.release();
+      if (!(result as any).affectedRows) return res.status(404).json({ error: "Need not found." });
+      return res.json({ success: true, needId });
+    } catch (error) { await connection.rollback(); connection.release(); throw error; }
+  } catch (error) { console.error("[Admin] Need deletion failed", error); return res.status(500).json({ error: "Unable to remove this need." }); }
+});
 addNeedPath("/api/needs/draft", async (req, res) => {
   try {
     const user = await currentUser(req);
