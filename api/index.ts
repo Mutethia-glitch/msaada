@@ -46,7 +46,7 @@ async function getDatabase() {
     try { await database.query("ALTER TABLE users ADD COLUMN passwordHash varchar(200) NULL"); }
     catch (error) { if (!String(error).includes("Duplicate column") && !String(error).includes("1060")) throw error; }
     await database.query("UPDATE users SET role = 'admin' WHERE LOWER(email) = ?", [ADMIN_EMAIL]);
-    await runChallengeCleanup(database);
+    // Cleanup remains disabled until the provider-specific constraint error is inspected directly.
     schemaReady = true;
   }
   return database;
